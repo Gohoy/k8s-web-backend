@@ -5,7 +5,7 @@ import lombok.Data;
 @Data
 public class PodInfo {
     private String name;
-    private String phase;
+    private String status;
     private String  cpu;
     private String memory;
     private String storage;
