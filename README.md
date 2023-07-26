@@ -35,7 +35,7 @@ GitHub：[GitHub - Gohoy/k8s-web-backend](https://github.com/Gohoy/k8s-web-backe
 
 ## 2.2后台架构说明
 
-![](file:///C:/Users/34822/AppData/Roaming/marktext/images/2023-07-25-16-53-20-image.png?msec=1690334495356)
+![后端架构简图](img.png)![](file:http://gohoy.top/i/2023/07/26/r7mymv.png)
 
 ### 2.3具体实现
 
@@ -61,5 +61,3 @@ GitHub：[GitHub - Gohoy/k8s-web-backend](https://github.com/Gohoy/k8s-web-backe
 
     - 拦截范围：`/admin/**`
 
-
-## 3.前端部分
