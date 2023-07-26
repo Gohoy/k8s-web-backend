@@ -1,9 +1,15 @@
 package com.example.home.gohoy.k8s_backend.controller.user;
 
 import com.example.home.gohoy.k8s_backend.POJO.PodInfo;
+import com.example.home.gohoy.k8s_backend.dto.PodDTO;
+import com.example.home.gohoy.k8s_backend.entities.User;
+import com.example.home.gohoy.k8s_backend.service.UserService;
+import com.example.home.gohoy.k8s_backend.utils.CommonResult;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodList;
 import io.fabric8.kubernetes.client.KubernetesClient;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import jakarta.annotation.Resource;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
@@ -12,9 +18,11 @@ import java.util.List;
 import static com.example.home.gohoy.k8s_backend.utils.PodCURD.*;
 
 @RestController
-@CrossOrigin
+@CrossOrigin("*")
 @RequestMapping("/pod/")
 public class PodController {
+    @Resource
+    UserService userService;
     private final KubernetesClient kubernetesClient;
 
     public PodController(KubernetesClient kubernetesClient) {
@@ -48,6 +56,29 @@ public class PodController {
         }
 
         return filteredPods;
+    }
+    @PostMapping("createCtr/{username}")
+    @ApiResponse(description = "用户通过此接口来创建一个container，并且返回该pod 的ip和默认root的密码")
+    public CommonResult createCtr(@PathVariable("username") String username){
+        User user = userService.getUserByName(username);
+        if(user.getCtrMax() - user.getCtrOccupied() <= 0){
+            return new CommonResult<>().message("当前用户可用容器已达上限").code(200);
+        }
+        //TODO 创建一个container
+        PodDTO podDTO = new PodDTO();
+        return new CommonResult<PodDTO>().data(podDTO).message("申请成功").code(200);
+    }
+
+    @PostMapping("createVM/{username}")
+    @ApiResponse(description = "用户通过此接口来创建一个VM，并且返回该pod 的ip和默认root的密码")
+    public CommonResult createVM(@PathVariable("username") String username){
+        User user = userService.getUserByName(username);
+        if(user.getVmMax() - user.getVmOccupied() <=0){
+            return new CommonResult<>().message("当前用户可用虚拟机已达上限").code(200);
+        }
+//        TODO 创建一台虚拟机
+        PodDTO podDTO = new PodDTO();
+        return new CommonResult<PodDTO>().data(podDTO).message("申请成功").code(200);
     }
 
 }

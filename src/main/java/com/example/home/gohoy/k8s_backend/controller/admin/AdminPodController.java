@@ -14,7 +14,7 @@ import java.util.List;
 import static com.example.home.gohoy.k8s_backend.utils.PodCURD.*;
 
 @RestController
-@CrossOrigin
+@CrossOrigin("*")
 @RequestMapping("/admin/pod/")
 public class AdminPodController {
     private final KubernetesClient kubernetesClient;

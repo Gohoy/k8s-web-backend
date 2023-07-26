@@ -8,6 +8,7 @@ import com.example.home.gohoy.k8s_backend.dao.UserDao;
 import com.example.home.gohoy.k8s_backend.dto.UserDTO;
 import com.example.home.gohoy.k8s_backend.entities.User;
 import com.example.home.gohoy.k8s_backend.service.UserService;
+import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -16,8 +17,8 @@ import java.util.List;
 public class UserServiceImpl extends ServiceImpl<UserDao , User> implements UserService {
 
 
+    @Resource
     private UserDao userDao;
-    private UserService userService;
     @Override
     public User getUserByName(String userName) {
         QueryWrapper<User> queryWrapper = new QueryWrapper<>();
