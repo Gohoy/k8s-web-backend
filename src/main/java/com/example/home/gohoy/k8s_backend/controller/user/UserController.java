@@ -11,8 +11,14 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.annotation.Resource;
 import org.springframework.dao.DuplicateKeyException;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.sql.Timestamp;
 
 @CrossOrigin("*")
@@ -63,6 +69,20 @@ public class UserController {
     private CommonResult getUser(@PathVariable("username") String username){
         UserDTO user = userService.getUserByName(username);
         return new CommonResult<UserDTO>().data(user).message("获取用户数据成功").code(200);
+    }
+
+    @GetMapping("/index")
+    public ResponseEntity<String> getIndex() throws IOException {
+        String markdownContent = readMarkdownFile("src/main/java/com/example/home/gohoy/k8s_backend/assets/index.md");
+        return ResponseEntity.ok()
+                .contentType(MediaType.TEXT_PLAIN)
+                .body(markdownContent);
+    }
+
+    private String readMarkdownFile(String filePath) throws IOException {
+        // 读取Markdown文件的内容
+        byte[] contentBytes = Files.readAllBytes(Paths.get(filePath));
+        return new String(contentBytes, StandardCharsets.UTF_8);
     }
 
 }

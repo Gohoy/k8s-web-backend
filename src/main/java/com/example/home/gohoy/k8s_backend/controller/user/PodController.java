@@ -5,6 +5,7 @@ import com.example.home.gohoy.k8s_backend.dto.PodDTO;
 import com.example.home.gohoy.k8s_backend.entities.User;
 import com.example.home.gohoy.k8s_backend.service.UserService;
 import com.example.home.gohoy.k8s_backend.utils.CommonResult;
+import com.example.home.gohoy.k8s_backend.utils.PodCURD;
 import io.fabric8.kubernetes.api.model.*;
 import io.fabric8.kubernetes.api.model.batch.v1.Job;
 import io.fabric8.kubernetes.api.model.batch.v1.JobBuilder;
@@ -32,11 +33,10 @@ public class PodController {
         this.kubernetesClient = kubernetesClient;
     }
 
-    @GetMapping("/selectPodByPrefix")
-    public List<PodInfo> getFilteredPodsByPrefix(@RequestParam(name = "namespace") String namespace,
-                                                 @RequestParam(name = "podPrefix") String podPrefix) {
+    @GetMapping("/selectPodByPrefix/{username}")
+    public List<PodInfo> getFilteredPodsByPrefix(@PathVariable("username") String username) {
         List<PodInfo> filteredPods = new ArrayList<>();
-        PodList podList = kubernetesClient.pods().inNamespace(namespace).list();
+        PodList podList = kubernetesClient.pods().inNamespace("default").list();
 
         for (Pod pod : podList.getItems()) {
             String podName = getPodName(pod);
@@ -45,15 +45,17 @@ public class PodController {
             if (podName.startsWith("kube-")) {
                 continue; // 排除系统Pod
             }
-            if (podName.startsWith(podPrefix)) {
+            if (podName.startsWith(username)) {
                 PodInfo podInfo = new PodInfo();
                 podInfo.setName(podName);
                 podInfo.setStatus(getStatus(pod));
                 podInfo.setNamespace(getNameSpace(pod));
                 podInfo.setCpu(getPodCpu(pod));
                 podInfo.setMemory(getPodMemory(pod));
-                podInfo.setStorage(getPodStorage(pod));
-
+                podInfo.setStorage(new PodCURD(kubernetesClient).getPodStorage(pod));
+                podInfo.setIp(getIp(pod));
+                podInfo.setSshPort(new PodCURD(kubernetesClient).getSshPort(pod));
+                podInfo.setTtl(getTTL(pod));
                 filteredPods.add(podInfo);
             }
         }
@@ -66,7 +68,7 @@ public class PodController {
     public CommonResult createCtr(@PathVariable("username") String username) {
         User user = userService.getUserByName(username);
         if (user.getCtrMax() - user.getCtrOccupied() <= 0) {
-            return new CommonResult<>().message("当前用户可用容器已达上限").code(200);
+            return new CommonResult<>().message("当前用户可用容器已达上限").code(500);
         }
         String ctrName = username + "-ctr-" + userService.getUserByName(username).getCtrOccupied().toString();
 
@@ -79,6 +81,8 @@ public class PodController {
         podDTO.setSshPort(port);
         podDTO.setSshIP("1.2.4.5");
         podDTO.setRootPassword("123456");
+        user.setCtrOccupied(user.getCtrOccupied()+1);
+        userService.updateById(user);
         return new CommonResult<PodDTO>().data(podDTO).message("申请成功").code(200);
     }
 
@@ -87,7 +91,7 @@ public class PodController {
     public CommonResult createVM(@PathVariable("username") String username) {
         User user = userService.getUserByName(username);
         if (user.getVmMax() - user.getVmOccupied() <= 0) {
-            return new CommonResult<>().message("当前用户可用虚拟机已达上限").code(200);
+            return new CommonResult<>().message("当前用户可用虚拟机已达上限").code(500);
         }
         String VMName = username + "-vm-" + userService.getUserByName(username).getVmOccupied().toString();
 //        TODO 创建一台虚拟机
@@ -99,6 +103,8 @@ public class PodController {
         podDTO.setSshPort(port);
         podDTO.setSshIP("1.2.4.7");
         podDTO.setRootPassword("123456");
+        user.setVmOccupied(user.getVmOccupied() +1);
+        userService.updateById(user);
         return new CommonResult<PodDTO>().data(podDTO).message("申请成功").code(200);
     }
 
@@ -185,21 +191,26 @@ public class PodController {
                     .build();
 
             Service createdService = kubernetesClient.services().inNamespace("default").createOrReplace(service);
-            System.out.println("Service created successfully. NodePort: " + createdService.getSpec().getPorts().get(0).getNodePort());
-            port = String.valueOf(Integer.valueOf(port) + 1);
+            System.out.println("Service created successfully. NodePort: " + port);
+            port = String.valueOf(Integer.parseInt(port) + 1);
             configMap.getData().put("port", port);
+            kubernetesClient.resource(configMap).inNamespace("config").createOrReplace();
             // 使用ConfigMap中的关键项来创建Job
             Job job = new JobBuilder()
                     .withNewMetadata()
                     .withName(jobName)
                     .endMetadata()
                     .withNewSpec()
+                    .withCompletions(1)
+                    .withParallelism(1)
+                    .withBackoffLimit(0)
+                    .withTtlSecondsAfterFinished(604800) //默认一个周
                     .withNewTemplate()
                     .withNewMetadata()
                     .addToLabels("job-name", jobName) // 添加标签用于Service的匹配
                     .endMetadata()
                     .withNewSpec()
-                    .withRestartPolicy("OnFailure")
+                    .withRestartPolicy("Never")
                     .addNewContainer()
                     .withName(podName)
                     .withImage(imageName)
@@ -234,5 +245,11 @@ public class PodController {
         }
 
         return -1; // 返回-1表示创建失败
+    }
+
+    @PostMapping("/shutDown/{podName}")
+    @ApiResponse(description = "关闭指定名称的pod")
+    public CommonResult shutDownPod(@PathVariable("podName") String podName){
+        return null;
     }
 }

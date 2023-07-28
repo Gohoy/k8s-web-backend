@@ -3,9 +3,11 @@ package com.example.home.gohoy.k8s_backend.controller.admin;
 import com.example.home.gohoy.k8s_backend.POJO.PodInfo;
 import com.example.home.gohoy.k8s_backend.dto.PodResourceDTO;
 import com.example.home.gohoy.k8s_backend.utils.CommonResult;
+import com.example.home.gohoy.k8s_backend.utils.PodCURD;
 import io.fabric8.kubernetes.api.model.ConfigMap;
 import io.fabric8.kubernetes.api.model.ObjectMeta;
 import io.fabric8.kubernetes.api.model.Pod;
+import io.fabric8.kubernetes.api.model.PodList;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import org.springframework.web.bind.annotation.*;
@@ -26,21 +28,31 @@ public class AdminPodController {
         this.kubernetesClient = kubernetesClient;
     }
 
-    @GetMapping("/allPods")
-    public List<PodInfo> getRunningPods() {
-        List<PodInfo> podInfoList = new ArrayList<>();
-        List<Pod> pods = kubernetesClient.pods().inAnyNamespace().list().getItems();
-        for (Pod pod : pods) {
+    @GetMapping("/getAllPods")
+    public List<PodInfo> getPodByPage() {
+        List<PodInfo> filteredPods = new ArrayList<>();
+        PodList podList = kubernetesClient.pods().inAnyNamespace().list();
+
+        for (Pod pod : podList.getItems()) {
+            String podName = getPodName(pod);
+
+            // 判断是否是系统Pod（这里简单假设系统Pod的名称以"kube-"开头）
+            if (podName.startsWith("kube-") || podName.startsWith("calico-") || podName.startsWith("coredns-")||podName.startsWith("etcd-")||podName.startsWith("tigera-")) {
+                continue; // 排除系统Pod
+            }
             PodInfo podInfo = new PodInfo();
-            podInfo.setName(getPodName(pod));
+            podInfo.setName(podName);
             podInfo.setStatus(getStatus(pod));
             podInfo.setNamespace(getNameSpace(pod));
             podInfo.setCpu(getPodCpu(pod));
             podInfo.setMemory(getPodMemory(pod));
-            podInfo.setStorage(getPodStorage(pod));
-            podInfoList.add(podInfo);
+            podInfo.setStorage(new PodCURD(kubernetesClient).getPodStorage(pod));
+            podInfo.setIp(getIp(pod));
+            podInfo.setSshPort(new PodCURD(kubernetesClient).getSshPort(pod));
+            podInfo.setTtl(getTTL(pod));
+            filteredPods.add(podInfo);
         }
-        return podInfoList;
+        return filteredPods;
     }
 
     @PostMapping("/setCtrDefaultResource/")
@@ -79,5 +91,6 @@ public class AdminPodController {
         ConfigMap map = kubernetesClient.resource(configMap).inNamespace("config").createOrReplace();
         return map != null;
     }
+
 
 }
