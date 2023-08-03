@@ -4,7 +4,14 @@ import lombok.Data;
 
 @Data
 public class PodResourceDTO {
+    public PodResourceDTO(String cpuValue, String memoryValue, String timeOfLife , String  port){
+        this.cpuValue = cpuValue;
+        this.memoryValue = memoryValue;
+        this.timeOfLife = timeOfLife;
+        this.port = port;
+    }
     String cpuValue ;
     String memoryValue ;
-    String storageValue ;
+    String timeOfLife ;
+    String  port ;
 }

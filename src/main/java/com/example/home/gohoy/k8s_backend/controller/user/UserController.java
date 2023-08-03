@@ -1,6 +1,7 @@
 package com.example.home.gohoy.k8s_backend.controller.user;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.example.home.gohoy.k8s_backend.POJO.PodInfo;
 import com.example.home.gohoy.k8s_backend.dao.UserDao;
 import com.example.home.gohoy.k8s_backend.dto.UserDTO;
 import com.example.home.gohoy.k8s_backend.entities.User;
@@ -20,6 +21,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.sql.Timestamp;
+import java.util.List;
 
 @CrossOrigin("*")
 @ApiResponses
@@ -30,11 +32,13 @@ public class UserController {
     private UserDao userDao;
     @Resource
     private UserService userService;
+    @Resource
+    private PodController podController;
 
     @PostMapping("/register")
     @ApiResponse(description = "用户注册")
     private CommonResult register(@RequestBody User user) {
-        String token = JWTUtils.generateToken(user.getUsername(), 604800000);//token 一周过期
+        String token = JWTUtils.generateToken(user.getUsername(), (byte) '0', 604800000);//token 一周过期
         user.setToken(token);
         user.setLastLogin(new Timestamp(System.currentTimeMillis()));
 
@@ -54,14 +58,30 @@ public class UserController {
     @PostMapping("/login")
     @ApiResponse(description = "用户登录")
     private CommonResult login(@RequestBody User user){
-        if(userService.getUserByName(user.getUsername()).getPassword().equals(user.getPassword() )){
-            String token = JWTUtils.generateToken(user.getUsername(), 604800000);//token 一周过期
-            user.setLastLogin(new Timestamp(System.currentTimeMillis()));
-            user.setToken(token);
-            userDao.update(user,new QueryWrapper<User>().eq("username",user.getUsername()));
+        User user1 = userService.getUserByName(user.getUsername());
+        if(user1 == null){
+            return  new CommonResult<>().message("用户名或密码错误，请重试").code(500);
+        }
+        if(user1.getPassword().equals(user.getPassword() )){
+            String token = JWTUtils.generateToken(user.getUsername(), user1.getIsAdmin(), 604800000);//token 一周过期
+            user1.setLastLogin(new Timestamp(System.currentTimeMillis()));
+            user1.setToken(token);
+            List<PodInfo> pods = podController.getPodsByUserName(user.getUsername());
+            int ctrCount = 0;
+            int vmCount = 0;
+            for (PodInfo pod : pods) {
+                if(pod.getName().startsWith(user.getUsername()+"-vm-")){
+                    vmCount ++;
+                }else if(pod.getName().startsWith(user.getUsername() + "-ctr-")){
+                    ctrCount++;
+                }
+            }
+            user1.setCtrOccupied(ctrCount);
+            user1.setVmOccupied(vmCount);
+            userDao.update(user1,new QueryWrapper<User>().eq("username",user.getUsername()));
             return new CommonResult<String>().data(token).message("登录成功").code(200);
         }
-        return  new CommonResult<>().message("用户名或密码错误，请重试").code(400);
+        return  new CommonResult<>().message("用户名或密码错误，请重试").code(500);
     }
 
     @GetMapping("/getUserDTO/{username}")
