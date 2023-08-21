@@ -1,11 +1,12 @@
 package com.example.home.gohoy.k8s_backend.controller.user;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.example.home.gohoy.k8s_backend.POJO.PodInfo;
+import com.example.home.gohoy.k8s_backend.entities.PodInfo;
 import com.example.home.gohoy.k8s_backend.dao.UserDao;
 import com.example.home.gohoy.k8s_backend.dto.UserDTO;
 import com.example.home.gohoy.k8s_backend.entities.User;
-import com.example.home.gohoy.k8s_backend.service.UserService;
+import com.example.home.gohoy.k8s_backend.service.user.PodService;
+import com.example.home.gohoy.k8s_backend.service.user.UserService;
 import com.example.home.gohoy.k8s_backend.utils.CommonResult;
 import com.example.home.gohoy.k8s_backend.utils.JWTUtils;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -25,15 +26,15 @@ import java.util.List;
 
 @CrossOrigin("*")
 @ApiResponses
-@RestController("com.example.home.gohoy.k8s_backend")
+@RestController()
 @RequestMapping("/user/")
-public class UserController {
+    public class UserController {
     @Resource
     private UserDao userDao;
     @Resource
     private UserService userService;
     @Resource
-    private PodController podController;
+    private PodService podService;
 
     @PostMapping("/register")
     @ApiResponse(description = "用户注册")
@@ -66,7 +67,7 @@ public class UserController {
             String token = JWTUtils.generateToken(user.getUsername(), user1.getIsAdmin(), 604800000);//token 一周过期
             user1.setLastLogin(new Timestamp(System.currentTimeMillis()));
             user1.setToken(token);
-            List<PodInfo> pods = podController.getPodsByUserName(user.getUsername());
+            List<PodInfo> pods = podService.getPodsByUserName(user.getUsername());
             int ctrCount = 0;
             int vmCount = 0;
             for (PodInfo pod : pods) {

@@ -9,7 +9,7 @@ public class KubernetesConfig {
 
     @Bean
     public KubernetesClient kubernetesClient() {
-        Config config = new ConfigBuilder().withMasterUrl("https://192.168.111.140:6443").build();
+        Config config = new ConfigBuilder().withMasterUrl("https://10.168.59.90:6443").build();
         return new KubernetesClientBuilder().withConfig(config).build();
     }
 }

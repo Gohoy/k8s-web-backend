@@ -1,4 +1,4 @@
-package com.example.home.gohoy.k8s_backend.POJO;
+package com.example.home.gohoy.k8s_backend.entities;
 
 import lombok.Data;
 

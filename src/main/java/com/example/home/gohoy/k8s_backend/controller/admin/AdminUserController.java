@@ -3,9 +3,10 @@ package com.example.home.gohoy.k8s_backend.controller.admin;
 import com.example.home.gohoy.k8s_backend.dao.UserDao;
 import com.example.home.gohoy.k8s_backend.dto.UserDTO;
 import com.example.home.gohoy.k8s_backend.entities.User;
-import com.example.home.gohoy.k8s_backend.service.UserService;
+import com.example.home.gohoy.k8s_backend.service.user.UserService;
 import com.example.home.gohoy.k8s_backend.utils.CommonResult;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.annotation.Resource;
 import org.springframework.web.bind.annotation.*;
 
@@ -13,7 +14,7 @@ import java.util.List;
 
 @RestController
 @CrossOrigin("*")
-@ApiResponse
+@ApiResponses
 @RequestMapping("/admin/")
 public class AdminUserController {
     @Resource
