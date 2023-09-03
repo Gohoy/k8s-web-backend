@@ -51,6 +51,9 @@ public class PodCURD {
     public String getSshPort(Pod pod){
         String podName = pod.getMetadata().getName();
         int startIndex = podName.indexOf("-job-");
+        if(startIndex == -1){
+            return null;
+        }
         // 提取子字符串
         podName = podName.substring(0, startIndex);
         String serviceName = podName+"-service";

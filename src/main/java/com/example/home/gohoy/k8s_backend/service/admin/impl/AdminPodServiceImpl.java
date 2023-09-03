@@ -33,22 +33,37 @@ public class AdminPodServiceImpl implements AdminPodService {
             if (podName.startsWith("kube-") || podName.startsWith("calico-") || podName.startsWith("coredns-")||podName.startsWith("etcd-")||podName.startsWith("tigera-")) {
                 continue; // 排除系统Pod
             }
-            int startIndex = podName.indexOf("-") + 1;
-            int endIndex = podName.indexOf("-", startIndex);
-            String type1 = podName.substring(startIndex, endIndex);
-            if(!type1.equals(type)){
-                continue;
+            if(type.equals("vm") && podName.startsWith("virt-launcher")){
+                PodInfo podInfo = new PodInfo();
+                podInfo.setName(podName);
+                podInfo.setStatus(getStatus(pod));
+                podInfo.setNamespace(getNameSpace(pod));
+                podInfo.setCpu(getPodCpu(pod));
+                podInfo.setMemory(getPodMemory(pod));
+                podInfo.setIp(getIp(pod));
+                podInfo.setSshPort(new PodCURD(kubernetesClient).getSshPort(pod));
+                podInfo.setTtl(getTTL(pod));
+                filteredPods.add(podInfo);
+            }else if(type.equals("ctr")) {
+                int startIndex = podName.indexOf("-") + 1;
+                int endIndex = podName.indexOf("-", startIndex);
+                String type1 = podName.substring(startIndex, endIndex);
+                if(!type1.equals(type)){
+                    continue;
+                }
+                PodInfo podInfo = new PodInfo();
+                podInfo.setName(podName);
+                podInfo.setStatus(getStatus(pod));
+                podInfo.setNamespace(getNameSpace(pod));
+                podInfo.setCpu(getPodCpu(pod));
+                podInfo.setMemory(getPodMemory(pod));
+                podInfo.setIp(getIp(pod));
+                podInfo.setSshPort(new PodCURD(kubernetesClient).getSshPort(pod));
+                podInfo.setTtl(getTTL(pod));
+                filteredPods.add(podInfo);
             }
-            PodInfo podInfo = new PodInfo();
-            podInfo.setName(podName);
-            podInfo.setStatus(getStatus(pod));
-            podInfo.setNamespace(getNameSpace(pod));
-            podInfo.setCpu(getPodCpu(pod));
-            podInfo.setMemory(getPodMemory(pod));
-            podInfo.setIp(getIp(pod));
-            podInfo.setSshPort(new PodCURD(kubernetesClient).getSshPort(pod));
-            podInfo.setTtl(getTTL(pod));
-            filteredPods.add(podInfo);
+
+
         }
         return filteredPods;
 

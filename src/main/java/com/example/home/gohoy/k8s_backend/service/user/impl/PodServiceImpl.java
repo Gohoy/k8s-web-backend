@@ -11,10 +11,7 @@ import io.fabric8.kubernetes.api.model.batch.v1.JobBuilder;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import jakarta.annotation.Resource;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static com.example.home.gohoy.k8s_backend.utils.PodCURD.*;
 @org.springframework.stereotype.Service
@@ -40,7 +37,7 @@ public class PodServiceImpl implements PodService {
             if (podName.startsWith("kube-")) {
                 continue; // 排除系统Pod
             }
-            if (podName.startsWith(userName)) {
+            if (podName.contains(userName)) {
                 PodInfo podInfo = new PodInfo();
                 podInfo.setName(podName);
                 podInfo.setStatus(getStatus(pod));
@@ -160,50 +157,8 @@ public class PodServiceImpl implements PodService {
             port = String.valueOf(Integer.parseInt(port) + 1);
             configMap.getData().put("port", port);
             kubernetesClient.resource(configMap).inNamespace("default").createOrReplace();
-            // 使用ConfigMap中的关键项来创建Job
-            Job job = new JobBuilder()
-                    .withNewMetadata()
-                    .withName(jobName)
-                    .endMetadata()
-                    .withNewSpec()
-                    .withCompletions(1)
-                    .withParallelism(1)
-                    .withBackoffLimit(0)
-                    .withTtlSecondsAfterFinished(Math.toIntExact(60L)) //默认一个周
-                    .withNewTemplate()
-                    .withNewMetadata()
-                    .addToLabels("job-name", jobName) // 添加标签用于Service的匹配
-                    .endMetadata()
-                    .withNewSpec()
-                    .withRestartPolicy("Never")
-                    .addNewContainer()
-                    .withName(podName)
-                    .withImage(imageName)
-                    .withNewResources()
-                    .addToLimits("cpu", Quantity.parse(cpu))
-                    .addToLimits("memory", Quantity.parse(memory))
-                    .addToRequests("cpu", Quantity.parse(cpu))
-                    .addToRequests("memory", Quantity.parse(memory))
-                    .endResources()
-                    .addNewVolumeMount() // 添加VolumeMount用于挂载PVC
-                    .withName(podName + "-pvc") // 使用PVC的名称
-                    .withMountPath("/data/pv/") // 设置挂载的路径，确保与容器应用程序需要访问的路径相匹配
-                    .endVolumeMount()
-                    .endContainer()
-                    .addNewVolume() // 添加Volume用于绑定PVC
-                    .withName(podName + "-pvc") // 使用PVC的名称
-                    .withPersistentVolumeClaim(new PersistentVolumeClaimVolumeSourceBuilder()
-                            .withClaimName(createdPVC.getMetadata().getName())
-                            .build())
-                    .endVolume()
-                    .endSpec()
-                    .endTemplate()
-                    .endSpec()
-                    .build();
 
-            job.getSpec().getTemplate().getSpec().setActiveDeadlineSeconds(timeOfLife);
-            // 将Job提交到Kubernetes集群
-            Job createdJob = kubernetesClient.resource(job).inNamespace("default").createOrReplace();
+            Job createdJob = createJob(podName, cpu, memory, timeOfLife, imageName);
             if (createdJob != null) {
                 return Integer.parseInt(port);
             }
@@ -213,5 +168,54 @@ public class PodServiceImpl implements PodService {
         }
 
         return -1; // 返回-1表示创建失败
+    }
+
+    @Override
+    public Job createJob(String podName, String cpu, String memory, Long timeOfLife, String imageName) {
+        String jobName = podName + "-job";
+        Job job = new JobBuilder()
+                .withNewMetadata()
+                .withName(jobName)
+                .endMetadata()
+                .withNewSpec()
+                .withCompletions(1)
+                .withParallelism(1)
+                .withBackoffLimit(0)
+                .withTtlSecondsAfterFinished(Math.toIntExact(10L))
+                .withNewTemplate()
+                .withNewMetadata()
+                .addToLabels("job-name", jobName) // 添加标签用于Service的匹配
+                .addToLabels("job-uuid", String.valueOf(UUID.randomUUID()))
+                .endMetadata()
+                .withNewSpec()
+                .withRestartPolicy("OnFailure")
+                .addNewContainer()
+                .withName(podName)
+                .withImage(imageName)
+                .withNewResources()
+                .addToLimits("cpu", Quantity.parse(cpu))
+                .addToLimits("memory", Quantity.parse(memory))
+                .addToRequests("cpu", Quantity.parse(cpu))
+                .addToRequests("memory", Quantity.parse(memory))
+                .endResources()
+                .addNewVolumeMount() // 添加VolumeMount用于挂载PVC
+                .withName(podName + "-pvc") // 使用PVC的名称
+                .withMountPath("/data/pv/") // 设置挂载的路径，确保与容器应用程序需要访问的路径相匹配
+                .endVolumeMount()
+                .endContainer()
+                .addNewVolume() // 添加Volume用于绑定PVC
+                .withName(podName + "-pvc") // 使用PVC的名称
+                .withPersistentVolumeClaim(new PersistentVolumeClaimVolumeSourceBuilder()
+                        .withClaimName(podName + "-pvc")
+                        .build())
+                .endVolume()
+                .endSpec()
+                .endTemplate()
+                .endSpec()
+                .build();
+        job.getSpec().getTemplate().getSpec().setActiveDeadlineSeconds(timeOfLife);
+        // 将Job提交到Kubernetes集群
+        Job createdJob = kubernetesClient.resource(job).inNamespace("default").createOrReplace();
+        return createdJob;
     }
 }

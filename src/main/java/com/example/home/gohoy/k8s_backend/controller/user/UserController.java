@@ -1,7 +1,5 @@
 package com.example.home.gohoy.k8s_backend.controller.user;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.example.home.gohoy.k8s_backend.entities.PodInfo;
 import com.example.home.gohoy.k8s_backend.dao.UserDao;
 import com.example.home.gohoy.k8s_backend.dto.UserDTO;
 import com.example.home.gohoy.k8s_backend.entities.User;
@@ -22,7 +20,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.sql.Timestamp;
-import java.util.List;
 
 @CrossOrigin("*")
 @ApiResponses
@@ -67,19 +64,19 @@ import java.util.List;
             String token = JWTUtils.generateToken(user.getUsername(), user1.getIsAdmin(), 604800000);//token 一周过期
             user1.setLastLogin(new Timestamp(System.currentTimeMillis()));
             user1.setToken(token);
-            List<PodInfo> pods = podService.getPodsByUserName(user.getUsername());
-            int ctrCount = 0;
-            int vmCount = 0;
-            for (PodInfo pod : pods) {
-                if(pod.getName().startsWith(user.getUsername()+"-vm-")){
-                    vmCount ++;
-                }else if(pod.getName().startsWith(user.getUsername() + "-ctr-")){
-                    ctrCount++;
-                }
-            }
-            user1.setCtrOccupied(ctrCount);
-            user1.setVmOccupied(vmCount);
-            userDao.update(user1,new QueryWrapper<User>().eq("username",user.getUsername()));
+//            List<PodInfo> pods = podService.getPodsByUserName(user.getUsername());
+//            int ctrCount = 0;
+//            int vmCount = 0;
+//            for (PodInfo pod : pods) {
+//                if(pod.getName().startsWith(user.getUsername()+"-vm-")){
+//                    vmCount ++;
+//                }else if(pod.getName().startsWith(user.getUsername() + "-ctr-")){
+//                    ctrCount++;
+//                }
+//            }
+//            user1.setCtrOccupied(ctrCount);
+//            user1.setVmOccupied(vmCount);
+//            userDao.update(user1,new QueryWrapper<User>().eq("username",user.getUsername()));
             return new CommonResult<String>().data(token).message("登录成功").code(200);
         }
         return  new CommonResult<>().message("用户名或密码错误，请重试").code(500);
@@ -94,7 +91,7 @@ import java.util.List;
 
     @GetMapping("/index")
     public ResponseEntity<String> getIndex() throws IOException {
-        String markdownContent = readMarkdownFile("src/main/java/com/example/home/gohoy/k8s_backend/assets/index.md");
+        String markdownContent = readMarkdownFile("/data/assets/index.md");
         return ResponseEntity.ok()
                 .contentType(MediaType.TEXT_PLAIN)
                 .body(markdownContent);
@@ -105,5 +102,4 @@ import java.util.List;
         byte[] contentBytes = Files.readAllBytes(Paths.get(filePath));
         return new String(contentBytes, StandardCharsets.UTF_8);
     }
-
 }

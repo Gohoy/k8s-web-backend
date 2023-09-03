@@ -27,6 +27,7 @@ public class AdminPodController {
     @GetMapping("/getAllPods/{type}")
     public CommonResult  getPodByPage(@PathVariable("type") String type) {
         List<PodInfo> pods = adminPodService.getPodByPage(type, kubernetesClient);
+        System.out.println("getAllPods");
         return new CommonResult<List<PodInfo>>().data(pods).message("获取"+type+"成功").code(200);
     }
 
@@ -68,6 +69,7 @@ public class AdminPodController {
             return new CommonResult<String >().code(500).message("没有"+type+"类型");
         }
     }
+
 
 
 }

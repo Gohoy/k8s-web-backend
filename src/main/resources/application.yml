@@ -6,15 +6,12 @@ spring:
       discovery:
         enabled: true
   datasource:
-    url: jdbc:mysql://localhost:3306/k8s?user=root&password=040424&useUnicode=true&characterEncoding=utf-8&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=Asia/Shanghai
+    url: jdbc:mysql://10.168.59.90:3306/k8s?allowPublicKeyRetrieval=true&useSSL=false&user=root&password=040424&useUnicode=true&characterEncoding=utf-8&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=Asia/Shanghai
     driver-class-name: com.mysql.cj.jdbc.Driver
-curl-request:
-  client-cert-path: classpath:client.crt
-  ca-cert-path: classpath:ca.crt
-  client-key-path: classpath:client.key
+
 
 server:
-  port: 8080
+  port: 8088
 mybatis-plus:
   mapper-locations: classpath:mapper/*.xml
 
